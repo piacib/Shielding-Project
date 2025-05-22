@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Shielding Form</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #f4f7f8;
+        padding: 40px;
+      }
+
+      .form-container {
+        background: #fff;
+        padding: 30px 40px;
+        max-width: 500px;
+        margin: auto;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      h1 {
+        text-align: center;
+        color: #333;
+      }
+
+      label {
+        display: block;
+        margin: 15px 0 5px;
+        font-weight: bold;
+        color: #555;
+      }
+
+      input[type="text"],
+      input[type="number"] {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        box-sizing: border-box;
+      }
+      select {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        box-sizing: border-box;
+        background-color: white;
+      }
+
+      input[type="submit"] {
+        background-color: #007bff;
+        color: white;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 5px;
+        width: 100%;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
+      .design-goal-display,
+      .occupancy-factor-display {
+        margin-bottom: 15px;
+        padding: 10px;
+        background: #eef;
+        border-left: 4px solid #007bff;
+        font-size: 14px;
+      }
+      input[type="submit"]:hover {
+        background-color: #0056b3;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="form-container">
+      <h1>Shielding Design Form</h1>
+      <form method="POST">
+        {{ form.hidden_tag() }}
+
+        <!-- Patient Workload -->
+        <label for="patient_workload">{{ form.patient_workload.label }}</label>
+        {{ form.patient_workload() }}
+
+        <!-- Room Type -->
+        <label for="room_type">{{ form.room_type.label }}</label>
+        {{ form.room_type(id="room_type", onchange="updateOccupancyFactor()") }}
+
+        <!-- occupancy Factor (linked to room type) -->
+        <div class="occupancy-factor-display" id="occupancyFactorBox">
+          Occupancy Factor: <span id="occupancyFactorText">—</span>
+        </div>
+        <input type="hidden" name="Design Goal" id="design_go" />
+
+        <label for="designGoal">{{ form.design_goal.label }}</label>
+        {{ form.design_goal(id="designGoal", onchange="updateDesignGoal()") }}
+
+        <!-- Design Goal (linked to occupancy) -->
+        <div class="design-goal-display" id="designGoalBox">
+          Design Goal: <span id="designGoalText">0.02</span> mSv/week
+        </div>
+        <input type="hidden" name="design_goal" id="design_goal_hidden" />
+
+        <!-- Distance to Barrier -->
+        <label for="distance_to_barrier"
+          >{{ form.distance_to_barrier.label }}</label
+        >
+        {{ form.distance_to_barrier() }}
+
+        <!-- Air Kerma -->
+        <label for="air_kerma">{{ form.air_kerma.label }}</label>
+        {{ form.air_kerma() }}
+
+        <!-- Wall Material -->
+        <label for="wall_material">{{ form.wall_material.label }}</label>
+        {{ form.wall_material() }}
+
+        <!-- Submit -->
+        {{ form.submit() }}
+      </form>
+    </div>
+
+    <script>
+      const room_selection_to_occupancy_factor = {
+        "Office,labs pharmacies, reception areas, waiting room,kid play area Patient Exam and Treatment Room": 1,
+        "Corridor, Patient Room, Employee Lounges, Staff Rest Room": 0.5,
+        "Corridor doors": 0.2,
+        "Public toilets, unattended vending areas, storage rooms, outdoor areas with seating, unattended waiting rooms, patient holding areas": 0.13,
+        "Outdoor areas with only transient pedestrian or vehicular traffic, unattended parking lots, vehicular drop off areas (unattended), attics, stairways, unattended elevators, janitor’s closets": 0.05,
+        Other: 1,
+      };
+
+      function updateOccupancyFactor() {
+        const select = document.getElementById("room_type");
+        const occupancyFactor = select.value;
+
+        document.getElementById("occupancyFactorText").innerText =
+          occupancyFactor;
+        document.getElementById("occupancy_factor_hidden").value =
+          occupancyFactor;
+      }
+
+      function updateDesignGoal() {
+        const select = document.getElementById("designGoal");
+        const designGoal = select.value;
+        document.getElementById("designGoalText").innerText = designGoal;
+        document.getElementById("design_goal_hidden").value = designGoal;
+      }
+
+      // Initialize both on page load
+      document.addEventListener("DOMContentLoaded", () => {
+        updateOccupancyFactor();
+        updateDesignGoal();
+      });
+    </script>
+    <script>
+      document
+        .getElementById("shielding-form")
+        .addEventListener("submit", function (event) {
+          const formData = new FormData(this);
+          const entries = Object.fromEntries(formData.entries());
+          console.log("Form Submitted with values:");
+          console.log(entries);
+          // If you want to prevent submission for testing:
+          // event.preventDefault();
+        });
+    </script>
+  </body>
+</html>

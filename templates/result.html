@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Shielding Calculation Result</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script
+      id="MathJax-script"
+      async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+    ></script> <meta charset="UTF-8">
+      <title>Shielding Calculation Results</title>
+      <link href="https://fonts.googleapis.com/css2?family=Inter&display=swap" rel="stylesheet">
+      <style>
+        body {
+          font-family: 'Inter', sans-serif;
+          background: #f4f7f8;
+          padding: 40px;
+          color: #333;
+        }
+    
+        .results-container {
+          background: #fff;
+          max-width: 700px;
+          margin: auto;
+          padding: 30px 40px;
+          border-radius: 12px;
+          box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+    
+        h1, h2 {
+          text-align: center;
+          color: #2c3e50;
+        }
+    
+        .summary-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 20px;
+        }
+    
+        .summary-table th,
+        .summary-table td {
+          text-align: left;
+          padding: 10px 15px;
+          border-bottom: 1px solid #e0e0e0;
+        }
+    
+        .summary-table th {
+          background-color: #f0f3f5;
+          color: #555;
+        }
+    
+        .highlight {
+          background-color: #eaf4ff;
+          font-weight: bold;
+        }
+    
+        .back-link {
+          display: block;
+          text-align: center;
+          margin-top: 30px;
+          text-decoration: none;
+          color: #007bff;
+          font-weight: 500;
+        }
+    
+        .back-link:hover {
+          text-decoration: underline;
+        }
+      </style>
+  </head>
+    <h1>Calculation Result</h1>
+    <body>
+      <div class="results-container">
+        <h1>Shielding Calculation Results</h1>
+    
+        <table class="summary-table">
+          <tr><th>Input</th><th>Value</th></tr>
+          <tr><td>Patient Workload</td><td>{{ patient_workload }}</td></tr>
+          <tr><td>Distance to Barrier</td><td>{{ distance_to_barrier }}</td></tr>
+          <tr><td>Air Kerma at 1 m</td><td>{{ air_kerma }}</td></tr>
+          <tr><td>Wall Material</td><td>{{ wall_material }}</td></tr>
+          <!-- No longer reads room type b/c editted to value -->
+          <!-- <tr><td>Room Type</td><td>{{ room_type }}</td></tr> -->
+          <tr><td>Occupancy</td><td>{{ occupancy_factor }}</td></tr>
+          <tr><td>Use Factor</td><td>{{ use_factor }}</td></tr>
+          <tr><td>Design Goal (mSv/week)</td><td>{{ design_goal }}</td></tr>
+        </table>
+    
+        <h2>Material Constants</h2>
+        <table class="summary-table">
+          <tr><th>Parameter</th><th>Value</th></tr>
+          <tr><td>α (alpha)</td><td>{{ alpha }}</td></tr>
+          <tr><td>β (beta)</td><td>{{ beta }}</td></tr>
+          <tr><td>γ (gamma)</td><td>{{ gamma }}</td></tr>
+        </table>
+    
+        <h2>Derived Values</h2>
+        <table class="summary-table">
+          <tr class="highlight"><td>This wall should have:</td><td>{{ x_barrier }}</td></tr>
+        </table>
+    
+        <a class="back-link" href="{{ url_for('index') }}">← Go Back to Form</a>
+      </div>
+    </body>
+    </html>
+    
+    <h2>Shielding Equations</h2>
+
+    <p>
+      $$B(x_{\text{barrier}}) = \left( \frac{P}{T} \right) \frac{d^2}{K \cdot
+      N}$$
+    </p>
+
+    <p>
+      $$x_{\text{barrier}} = \frac{1}{\alpha \gamma} \ln \left[ \frac{ \left(
+      \frac{N T K}{P d^2} \right)\gamma + \frac{\beta}{\alpha} }{ 1 +
+      \frac{\beta}{\alpha} } \right]$$
+    </p>
+
+    <a href="{{ url_for('index') }}">Go Back</a>
+  </body>
+</html>
