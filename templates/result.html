@@ -76,15 +76,13 @@
     
         <table class="summary-table">
           <tr><th>Input</th><th>Value</th></tr>
-          <tr><td>Patient Workload</td><td>{{ patient_workload }}</td></tr>
-          <tr><td>Distance to Barrier</td><td>{{ distance_to_barrier }}</td></tr>
-          <tr><td>Air Kerma at 1 m</td><td>{{ air_kerma }}</td></tr>
+          <tr><td>Patient Workload (N)</td><td>{{ patient_workload }}</td></tr>
+          <tr><td>Distance to Barrier (d)</td><td>{{ distance_to_barrier }}</td></tr>
+          <tr><td>Air Kerma at 1m (K)</td><td>{{ air_kerma }}</td></tr>
           <tr><td>Wall Material</td><td>{{ wall_material }}</td></tr>
-          <!-- No longer reads room type b/c editted to value -->
-          <!-- <tr><td>Room Type</td><td>{{ room_type }}</td></tr> -->
-          <tr><td>Occupancy</td><td>{{ occupancy_factor }}</td></tr>
-          <tr><td>Use Factor</td><td>{{ use_factor }}</td></tr>
-          <tr><td>Design Goal (mSv/week)</td><td>{{ design_goal }}</td></tr>
+          <tr><td>Occupancy (T)</td><td>{{ occupancy_factor }}</td></tr>
+          <tr><td>Use Factor (P)</td><td>{{ use_factor }}</td></tr>
+          <tr><td>Design Goal (mSv/week) (P)</td><td>{{ design_goal }}</td></tr>
         </table>
     
         <h2>Material Constants</h2>
@@ -97,7 +95,7 @@
     
         <h2>Derived Values</h2>
         <table class="summary-table">
-          <tr class="highlight"><td>This wall should have:</td><td>{{ x_barrier }}</td></tr>
+          <tr class="highlight"><td>This wall should have:</td><td>{{ x_barrier }}mm of {{wall_material}}</td></tr>
         </table>
     
         <a class="back-link" href="{{ url_for('index') }}">← Go Back to Form</a>
@@ -113,9 +111,10 @@
     </p>
 
     <p>
-      $$x_{\text{barrier}} = \frac{1}{\alpha \gamma} \ln \left[ \frac{ \left(
-      \frac{N T K}{P d^2} \right)\gamma + \frac{\beta}{\alpha} }{ 1 +
-      \frac{\beta}{\alpha} } \right]$$
+      $$
+x_{\text{barrier}} = \frac{1}{\alpha \gamma} \ln \left( \frac{ B^{-\gamma} + \frac{\beta}{\alpha} }{ 1 + \frac{\beta}{\alpha} } \right)
+$$
+
     </p>
 
     <a href="{{ url_for('index') }}">Go Back</a>

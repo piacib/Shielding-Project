@@ -92,7 +92,11 @@
         <div class="occupancy-factor-display" id="occupancyFactorBox">
           Occupancy Factor: <span id="occupancyFactorText">—</span>
         </div>
-        <input type="hidden" name="Design Goal" id="design_go" />
+        <input
+          type="hidden"
+          name="occupancy_factor"
+          id="occupancy_factor_hidden"
+        />
 
         <label for="designGoal">{{ form.design_goal.label }}</label>
         {{ form.design_goal(id="designGoal", onchange="updateDesignGoal()") }}
@@ -135,7 +139,7 @@
       function updateOccupancyFactor() {
         const select = document.getElementById("room_type");
         const occupancyFactor = select.value;
-
+        console.log(select.value);
         document.getElementById("occupancyFactorText").innerText =
           occupancyFactor;
         document.getElementById("occupancy_factor_hidden").value =
@@ -163,8 +167,6 @@
           const entries = Object.fromEntries(formData.entries());
           console.log("Form Submitted with values:");
           console.log(entries);
-          // If you want to prevent submission for testing:
-          // event.preventDefault();
         });
     </script>
   </body>

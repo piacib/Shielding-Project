@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Draw on Image</title>
+    <style>
+      table {
+        width: 100%;
+        margin: 30px auto;
+        border-collapse: collapse;
+        font-family: sans-serif;
+        background: white;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      thead {
+        background-color: #007bff;
+        color: white;
+      }
+      thead th {
+        padding: 12px;
+        text-align: center;
+        font-weight: 600;
+      }
+      tbody td {
+        padding: 10px 12px;
+        border-top: 1px solid #eee;
+        font-size: 14px;
+      }
+      tbody tr:hover {
+        background-color: #f8f9fa;
+      }
+      input[type="text"],
+      select {
+        padding: 4px 6px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 13px;
+        width: 100%;
+        max-width: 200px;
+      }
+      button {
+        padding: 6px 12px;
+        border: none;
+        background-color: #dc3545;
+        color: white;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      button:hover {
+        background-color: #b02a37;
+      }
+      body {
+        font-family: sans-serif;
+        background: #f0f2f5;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding-bottom: 100px;
+      }
+      h1 {
+        margin-bottom: 30px;
+      }
+      .button-group {
+        display: flex;
+        gap: 20px;
+      }
+      .nav-button {
+        padding: 15px 25px;
+        font-size: 18px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        text-decoration: none;
+      }
+      .nav-button:hover {
+        background-color: #0056b3;
+      }
+      canvas {
+        border: 1px solid #000;
+        cursor: crosshair;
+      }
+      #popupOverlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #popupBox {
+        background: white;
+        padding: 20px 30px;
+        border-radius: 10px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        text-align: center;
+      }
+      #popupBox input {
+        margin: 5px;
+        padding: 5px;
+        width: 60px;
+        font-size: 16px;
+      }
+      #globalInputs label {
+        font-weight: 600;
+        font-size: 14px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      #globalInputs input {
+        margin: 0 10px;
+        padding: 6px 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 14px;
+        width: 120px;
+      }
+      #globalInputs {
+        display: flex;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Click and drag to measure distances</h1>
+    <canvas id="canvas"></canvas>
+    <button id="confirmButton">Confirm Line</button>
+    <!-- Measurement Table -->
+    <h3>Measurements</h3>
+    <div id="globalInputs">
+      <label>
+        Patient<br />Workload:
+        <input
+          type="number"
+          id="patientWorkload"
+          min="0"
+          step="0.01"
+          style="width: 100px"
+          value="7"
+        />
+      </label>
+      <label>
+        Air Kerma <br />Strength:
+        <input
+          type="number"
+          id="airKerma"
+          min="0"
+          step="0.01"
+          style="width: 100px"
+          value="3.8"
+        />
+      </label>
+    </div>
+    <table
+      id="measurementTable"
+      border="1"
+      style="margin-top: 10px; border-collapse: collapse"
+    >
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Room/Wall Name</th>
+          <th>Room Type</th>
+          <th>Occupancy Factor</th>
+          <th>Design Goal</th>
+          <th>Wall Material</th>
+          <th>Length</th>
+          <th>
+            Required Thickness <br />
+            of Material
+          </th>
+          <th>Required Lead <br />(lb/foot**2)</th>
+          <th>Remove</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <div style="margin: 20px 0">
+      <button class="nav-button" onclick="addManualLine()">Add Line</button>
+    </div>
+
+    <!-- Popup overlay -->
+    <div id="popupOverlay" style="display: none">
+      <div id="popupBox">
+        <h3>Enter Real-World Length</h3>
+        <label>
+          <input
+            type="number"
+            id="feet"
+            placeholder="Feet"
+            step="1"
+            min="0"
+            value="9"
+          />
+          ft
+        </label>
+        <label>
+          <input
+            type="number"
+            id="inches"
+            placeholder="Inches"
+            step="0.01"
+            min="0"
+            value="2.875"
+          />
+          in
+        </label>
+        <p id="scaleOutput"></p>
+        <button onclick="closePopup()">Done</button>
+      </div>
+    </div>
+    <script>
+      function updateLineLength(index, newLength) {
+        lines[index].realLength = parseFloat(newLength) || 0;
+        recalculateBarrierThickness(); // Optional: if you're auto-calculating on update
+      }
+
+      function addManualLine() {
+        const lengthInput = prompt(
+          "Enter the real-world length (in inches) for the new line:"
+        );
+
+        if (lengthInput === null) return; // Cancelled
+        const realLength = parseFloat(lengthInput);
+
+        if (isNaN(realLength) || realLength <= 0) {
+          alert("Please enter a valid positive number.");
+          return;
+        }
+        const newLine = {
+          start: { x: 0, y: realLength / scaleInchesPerPixel },
+          end: { x: 0, y: 0 },
+          name: `Line ${lines.length + 1}`,
+          roomType: "Other",
+          designGoal: "Uncontrolled",
+          wallMaterial: "Lead",
+          realLength: realLength,
+          occupancyFactor: 1,
+        };
+
+        lines.push(newLine);
+        submitToBackend();
+        updateTable();
+      }
+
+      function renameLine(index, newName) {
+        lines[index].name = newName;
+        updateTable(); // Optional: re-render to apply duplicate highlighting
+      }
+
+      const image = new Image();
+      image.src = "{{ image_url }}";
+      let selectedHandle = null; // Will track { lineIndex, point: 'start' | 'end' }
+
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+      const confirmButton = document.getElementById("confirmButton");
+      const scaleOutput = document.getElementById("scaleOutput");
+      let pointA = { x: 100, y: 100 };
+      let pointB = { x: 300, y: 200 };
+      const radius = 8;
+      let draggingPoint = null;
+      let confirmed = false;
+      let scaleInchesPerPixel = 0;
+      let lines = [];
+      let isDrawingLine = false;
+      let tempStart = null;
+
+      image.onload = () => {
+        canvas.width = image.width;
+        canvas.height = image.height;
+        drawCanvas();
+      };
+
+      const roomTypeOptions = [
+        "Office,labs pharmacies, reception areas, waiting room,kid play area Patient Exam and Treatment Room",
+        "Corridor, Patient Room, Employee Lounges, Staff Rest Room",
+        "Corridor doors",
+        "Public toilets, unattended vending areas, storage rooms, outdoor areas with seating, unattended waiting rooms, patient holding areas",
+        "Outdoor areas with only transient pedestrian or vehicular traffic, unattended parking lots, vehicular drop off areas (unattended), attics, stairways, unattended elevators, janitor’s closets",
+        "Other",
+      ];
+      const ROOM_OCCUPANCY_FACTORS = {
+        "Office,labs pharmacies, reception areas, waiting room,kid play area Patient Exam and Treatment Room": 1,
+        "Corridor, Patient Room, Employee Lounges, Staff Rest Room": 0.5,
+        "Corridor doors": 0.2,
+        "Public toilets, unattended vending areas, storage rooms, outdoor areas with seating, unattended waiting rooms, patient holding areas": 0.13,
+        "Outdoor areas with only transient pedestrian or vehicular traffic, unattended parking lots, vehicular drop off areas (unattended), attics, stairways, unattended elevators, janitor’s closets": 0.05,
+        Other: 1,
+      };
+      function getGlobalInputs() {
+        const workload =
+          parseFloat(document.getElementById("patientWorkload").value) || 0;
+        const airKerma =
+          parseFloat(document.getElementById("airKerma").value) || 0;
+        return { workload, airKerma };
+      }
+      function submitToBackend() {
+        const { workload, airKerma } = getGlobalInputs();
+        console.log(workload);
+        fetch("/calculate-thickness", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            workload,
+            airKerma,
+            lines,
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.lines) {
+              lines = data.lines;
+              updateTable();
+            } else {
+              alert("Calculation failed.");
+            }
+          })
+          .catch((err) => {
+            console.error("Error sending data to backend:", err);
+            alert("Server error.");
+          });
+      }
+
+      const designGoalOptions = ["Controlled", "Uncontrolled"];
+
+      const wallMaterialOptions = [
+        "Lead",
+        "Concrete",
+        "Gypsum",
+        "Steel",
+        "Plate Glass",
+        "Wood",
+      ];
+
+      function updateRoomType(index, newType) {
+        lines[index].roomType = newType;
+        lines[index].occupancyFactor = ROOM_OCCUPANCY_FACTORS[newType];
+
+        submitToBackend();
+      }
+
+      function drawCanvas() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(image, 0, 0);
+
+        lines.forEach(({ start, end, name }, index) => {
+          drawLine(start, end, "green");
+          drawHandle(start);
+          drawHandle(end);
+
+          // Calculate midpoint
+          const midX = (start.x + end.x) / 2;
+          const midY = (start.y + end.y) / 2;
+
+          // Draw label
+          ctx.fillStyle = "black";
+          ctx.font = "bold 14px sans-serif";
+          ctx.fillText(name || `Line ${index + 1}`, midX + 5, midY - 5);
+        });
+
+        if (!confirmed) {
+          drawLine(pointA, pointB, "red");
+          drawHandle(pointA);
+          drawHandle(pointB);
+        }
+      }
+
+      function drawLine(start, end, color) {
+        ctx.beginPath();
+        ctx.moveTo(start.x, start.y);
+        ctx.lineTo(end.x, end.y);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+
+      function drawHandle(point) {
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, radius, 0, 2 * Math.PI);
+        ctx.fillStyle = "blue";
+        ctx.fill();
+        ctx.strokeStyle = "white";
+        ctx.stroke();
+      }
+
+      canvas.addEventListener("mousemove", (e) => {
+        const x = e.offsetX;
+        const y = e.offsetY;
+
+        if (draggingPoint && !confirmed) {
+          draggingPoint.x = x;
+          draggingPoint.y = y;
+          drawCanvas();
+        } else if (isDrawingLine && confirmed) {
+          drawCanvas();
+          drawLine(tempStart, { x, y }, "orange");
+        } else if (selectedHandle) {
+          lines[selectedHandle.lineIndex][selectedHandle.point] = { x, y };
+          drawCanvas();
+          updateTable();
+        }
+      });
+
+      canvas.addEventListener("mouseup", (e) => {
+        if (isDrawingLine && confirmed) {
+          lines.push({
+            start: tempStart,
+            end: { x: e.offsetX, y: e.offsetY },
+            name: `Line ${lines.length + 1}`,
+            roomType: "Other", // default value
+            designGoal: "Uncontrolled", // default value
+            wallMaterial: "Lead", // default value
+            occupancyFactor: 1,
+          });
+          isDrawingLine = false;
+          tempStart = null;
+          drawCanvas();
+          updateTable();
+          submitToBackend();
+        }
+
+        if (selectedHandle !== null) {
+          selectedHandle = null;
+          drawCanvas();
+          updateTable();
+          submitToBackend();
+        }
+
+        draggingPoint = null;
+      });
+
+      function isNearPoint(x, y, point) {
+        return Math.hypot(point.x - x, point.y - y) < radius + 2;
+      }
+
+      confirmButton.addEventListener("click", () => {
+        confirmed = true;
+        draggingPoint = null;
+        drawCanvas();
+        document.getElementById("popupOverlay").style.display = "flex";
+      });
+
+      function closePopup() {
+        document.getElementById("popupOverlay").style.display = "none";
+        const feet = parseFloat(document.getElementById("feet").value) || 0;
+        const inches = parseFloat(document.getElementById("inches").value) || 0;
+        const totalInches = feet * 12 + inches;
+
+        const dx = pointB.x - pointA.x;
+        const dy = pointB.y - pointA.y;
+        const pixelLength = Math.sqrt(dx * dx + dy * dy);
+
+        if (totalInches > 0 && pixelLength > 0) {
+          scaleInchesPerPixel = totalInches / pixelLength;
+        }
+      }
+
+      document.getElementById("feet").addEventListener("input", updateScale);
+      document.getElementById("inches").addEventListener("input", updateScale);
+      function updateWallMaterial(index, newMaterial) {
+        lines[index].wallMaterial = newMaterial;
+        submitToBackend(); // Auto-trigger backend calculation
+      }
+
+      function updateDesignGoal(index, newGoal) {
+        lines[index].designGoal = newGoal;
+        submitToBackend(); // Auto-trigger backend calculation
+      }
+
+      function updateScale() {
+        const feet = parseFloat(document.getElementById("feet").value) || 0;
+        const inches = parseFloat(document.getElementById("inches").value) || 0;
+        const totalInches = feet * 12 + inches;
+
+        const dx = pointB.x - pointA.x;
+        const dy = pointB.y - pointA.y;
+        const pixelLength = Math.sqrt(dx * dx + dy * dy);
+
+        if (totalInches > 0 && pixelLength > 0) {
+          const scale = totalInches / pixelLength;
+          scaleOutput.innerText = `Scale: ${scale.toFixed(4)} inches per pixel`;
+        } else {
+          scaleOutput.innerText = "";
+        }
+      }
+      function getDuplicateNameRowColors(lines) {
+        const nameCount = {};
+        const colorMap = {};
+        const colors = [
+          "#e2f7e2",
+          "#e2f0fd",
+          "#fdf4e2",
+          "#f0e2fd",
+          "#e2fdf7",
+          "#fce2fd",
+          "#e2ecfc",
+        ];
+
+        // Count name frequencies
+        lines.forEach((line) => {
+          nameCount[line.name] = (nameCount[line.name] || 0) + 1;
+        });
+
+        let colorIndex = 0;
+        for (const name in nameCount) {
+          if (nameCount[name] > 1) {
+            colorMap[name] = colors[colorIndex % colors.length];
+            colorIndex++;
+          }
+        }
+
+        return colorMap;
+      }
+
+      function updateTable() {
+        const nameColorMap = getDuplicateNameRowColors(lines);
+        const tbody = document.querySelector("#measurementTable tbody");
+        tbody.innerHTML = "";
+
+        lines.forEach((line, index) => {
+          const dx = line.end.x - line.start.x;
+          const dy = line.end.y - line.start.y;
+          const pixels = Math.sqrt(dx * dx + dy * dy);
+          const realLength = pixels * scaleInchesPerPixel;
+          line.realLength = realLength;
+
+          const roomTypeHTML = roomTypeOptions
+            .map(
+              (opt) =>
+                `<option value="${opt}" ${
+                  opt === line.roomType ? "selected" : ""
+                }>${opt}</option>`
+            )
+            .join("");
+
+          const designGoalHTML = designGoalOptions
+            .map(
+              (opt) =>
+                `<option value="${opt}" ${
+                  opt === line.designGoal ? "selected" : ""
+                }>${opt}</option>`
+            )
+            .join("");
+
+          const wallMaterialHTML = wallMaterialOptions
+            .map(
+              (opt) =>
+                `<option value="${opt}" ${
+                  opt === line.wallMaterial ? "selected" : ""
+                }>${opt}</option>`
+            )
+            .join("");
+
+          const row = document.createElement("tr");
+          if (nameColorMap[line.name]) {
+            row.style.backgroundColor = nameColorMap[line.name];
+          }
+
+          row.innerHTML = `
+         <td>${index + 1}</td>
+         <td>
+           <input type="text" value="${
+             line.name
+           }" onchange="renameLine(${index}, this.value)" style="width: 100px;" />
+         </td>
+         
+         <td>
+           <select onchange="updateRoomType(${index}, this.value)" style="max-width: 250px;">
+             ${roomTypeHTML}
+           </select>
+         </td>
+         <td>
+            ${line.occupancyFactor}
+          </td>
+         <td>
+           <select onchange="updateDesignGoal(${index}, this.value)">
+             ${designGoalHTML}
+           </select>
+         </td>
+         <td>
+           <select onchange="updateWallMaterial(${index}, this.value)">
+             ${wallMaterialHTML}
+           </select>
+         </td>
+         <td>${realLength.toFixed(2)} in</td>
+         <td>${
+           line.requiredThickness
+             ? `${line.requiredThickness.toFixed(2)} mm`
+             : "-"
+         }</td>
+         <td>${line.requiredLead ? `${line.requiredLead}` : "-"}</td>
+         
+         <td><button onclick="deleteLine(${index})">Delete</button></td>
+         `;
+
+          tbody.appendChild(row);
+        });
+      }
+
+      function deleteLine(index) {
+        lines.splice(index, 1); // Remove the line from the array
+        drawCanvas(); // Redraw without the deleted line
+        updateTable(); // Rebuild the table
+      }
+
+      canvas.addEventListener("mousedown", (e) => {
+        const x = e.offsetX;
+        const y = e.offsetY;
+
+        if (!confirmed) {
+          if (isNearPoint(x, y, pointA)) draggingPoint = pointA;
+          else if (isNearPoint(x, y, pointB)) draggingPoint = pointB;
+        } else {
+          for (let i = 0; i < lines.length; i++) {
+            if (isNearPoint(x, y, lines[i].start)) {
+              selectedHandle = { lineIndex: i, point: "start" };
+              return;
+            }
+            if (isNearPoint(x, y, lines[i].end)) {
+              selectedHandle = { lineIndex: i, point: "end" };
+              return;
+            }
+          }
+          tempStart = { x, y };
+          isDrawingLine = true;
+        }
+      });
+    </script>
+  </body>
+</html>

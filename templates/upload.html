@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Upload File</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f0f2f5;
+      font-family: sans-serif;
+    }
+
+    form {
+      text-align: center;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .nav-button {
+      padding: 15px 25px;
+      font-size: 18px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 0.3s ease;
+      display: inline-block;
+    }
+
+    .nav-button:hover {
+      background-color: #0056b3;
+    }
+
+    #uploadButton {
+      margin-top: 20px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  
+  <h1>Add Your Blueprint</h1>
+  <form method="POST" enctype="multipart/form-data">
+    <!-- Styled Choose File Button -->
+    <label for="image" class="nav-button">Choose File</label>
+    <input type="file" id="image" name="image" accept="image/*,.pdf" required>
+
+    <!-- Upload Button (initially hidden) -->
+    <br>
+    <button id="uploadButton" class="nav-button" type="submit">Upload</button>
+  </form>
+
+  <script>
+    const fileInput = document.getElementById('image');
+    const uploadButton = document.getElementById('uploadButton');
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length > 0) {
+        uploadButton.style.display = 'inline-block';
+      } else {
+        uploadButton.style.display = 'none';
+      }
+    });
+  </script>
+
+</body>
+</html>
